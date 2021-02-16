@@ -1,82 +1,70 @@
-package com.taghavi.polygonshape;
+package com.taghavi.polygonshape
 
-import android.graphics.Canvas;
-import android.graphics.ColorFilter;
-import android.graphics.Paint;
-import android.graphics.Path;
-import android.graphics.Rect;
-import android.graphics.drawable.Drawable;
-import android.util.FloatMath;
+import android.graphics.*
+import android.graphics.drawable.Drawable
+import kotlin.math.cos
+import kotlin.math.sin
 
-import static java.lang.Math.cos;
-import static java.lang.Math.sin;
-
-public class PolygonalDrawable extends Drawable {
-    private int numberOfSides = 3;
-    private Path polygon = new Path();
-    private Path temporal = new Path();
-    private Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-
-    public PolygonalDrawable(int color, int sides) {
-        paint.setColor(color);
-        polygon.setFillType(Path.FillType.EVEN_ODD);
-        this.numberOfSides = sides;
+class PolygonalDrawable(color: Int, sides: Int) : Drawable() {
+    private var numberOfSides = 3
+    private val polygon = Path()
+    private val temporal = Path()
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+    override fun draw(canvas: Canvas) {
+        canvas.drawPath(polygon, paint)
     }
 
-    @Override
-    public void draw(Canvas canvas) {
-        canvas.drawPath(polygon, paint);
+    override fun setAlpha(alpha: Int) {
+        paint.alpha = alpha
     }
 
-    @Override
-    public void setAlpha(int alpha) {
-        paint.setAlpha(alpha);
+    override fun setColorFilter(cf: ColorFilter?) {
+        paint.colorFilter = cf
     }
 
-    @Override
-    public void setColorFilter(ColorFilter cf) {
-        paint.setColorFilter(cf);
+    override fun getOpacity(): Int {
+        return paint.alpha
     }
 
-    @Override
-    public int getOpacity() {
-        return paint.getAlpha();
+    override fun onBoundsChange(bounds: Rect) {
+        super.onBoundsChange(bounds)
+        computeHex(bounds)
+        invalidateSelf()
     }
 
-    @Override
-    protected void onBoundsChange(Rect bounds) {
-        super.onBoundsChange(bounds);
-        computeHex(bounds);
-        invalidateSelf();
+    private fun computeHex(bounds: Rect) {
+        val width = bounds.width()
+        val height = bounds.height()
+        val size = Math.min(width, height)
+        val centerX = bounds.left + width / 2
+        val centerY = bounds.top + height / 2
+        polygon.reset()
+        polygon.addPath(createHexagon(size, centerX, centerY))
+        polygon.addPath(createHexagon((size * .8f).toInt(), centerX, centerY))
     }
 
-    public void computeHex(Rect bounds) {
-
-        final int width = bounds.width();
-        final int height = bounds.height();
-        final int size = Math.min(width, height);
-        final int centerX = bounds.left + (width / 2);
-        final int centerY = bounds.top + (height / 2);
-
-        polygon.reset();
-        polygon.addPath(createHexagon(size, centerX, centerY));
-        polygon.addPath(createHexagon((int) (size * .8f), centerX, centerY));
-    }
-
-    private Path createHexagon(int size, int centerX, int centerY) {
-        final float section = (float) (2.0 * Math.PI / numberOfSides);
-        int radius = size / 2;
-        Path polygonPath = temporal;
-        polygonPath.reset();
-        polygonPath.moveTo((float) (centerX + radius * cos(0)),
-                (float) (centerY + radius * sin(0)));
-
-        for (int i = 1; i < numberOfSides; i++) {
-            polygonPath.lineTo((float) (centerX + radius * cos(section * i)),
-                    (float) (centerY + radius * sin(section * i)));
+    private fun createHexagon(size: Int, centerX: Int, centerY: Int): Path {
+        val section = (2.0 * Math.PI / numberOfSides).toFloat()
+        val radius = size / 2
+        val polygonPath = temporal
+        polygonPath.reset()
+        polygonPath.moveTo(
+            (centerX + radius * cos(0.0)).toFloat(),
+            (centerY + radius * sin(0.0)).toFloat()
+        )
+        for (i in 1 until numberOfSides) {
+            polygonPath.lineTo(
+                (centerX + radius * cos((section * i).toDouble())).toFloat(),
+                (centerY + radius * sin((section * i).toDouble())).toFloat()
+            )
         }
+        polygonPath.close()
+        return polygonPath
+    }
 
-        polygonPath.close();
-        return polygonPath;
+    init {
+        paint.color = color
+        polygon.fillType = Path.FillType.EVEN_ODD
+        numberOfSides = sides
     }
 }
